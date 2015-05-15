@@ -89,8 +89,7 @@ function Select(name)
   for slot=1,slots,1 do
     local data = turtle.getItemDetail(slot)
     if data and data.name==name then
-      turtle.select(slot) -- combine with next line?
-      return true
+      return turtle.select(slot)
     end
   end
   return false
@@ -98,22 +97,23 @@ end
 
 -- How many slots have nothing in them?
 function FreeSlots()
-  local Result=0
+  local result=0
   for slot=1, slots, 1 do
     if turtle.getItemCount(slot) == 0 then
-      Result = Result + 1
+      result = result + 1
     end
   end
-  return Result
+  return result
 end
 
--- for each slot where the compare function returns true when passed the name of the item in the slot, 
+-- for each slot where the compare function returns true 
+--   when passed the name of the item in the slot, 
 --   select that slot and call action function (no params)
 --  e.g.: ForEachSlotIf(IsWood, turtle.dropDown) -- dump wood
 function ForEachSlotIf(compareFn, actionFn)
   for n=1, slots, 1 do
     local data = turtle.getItemDetail(n)
-    if data and compareFn(data.name) then
+    if data and compareFn(data.name, data.damage) then
       turtle.select(n)
       actionFn()
     end
@@ -125,7 +125,8 @@ end
 -- Fuels not in the priority list get the default priority of 10; 
 --   list fuels with a small number to deprioritize them
 --   do not list fuels, or list with nil priority, to use default priority
---   a negative priority will cause fuels not to be consumed (saplings for a lumberbot, for example)
+--   a negative priority will cause fuels not to be consumed (saplings 
+--     for a lumberbot, for example)
 -- e.g. priorities={}
 --      priorities[idSapling]=-1
 --      priorities[idCharcoal]=20
@@ -189,7 +190,8 @@ function LowOnFuel()
   return turtle.getFuelLevel() ~= "unlimited" and turtle.getFuelLevel() <= lowFuel
 end
 
--- Movement causes automatic refueling; if we're low on fuel then it's because we've burnt everything
+-- Movement causes automatic refueling; 
+-- if we're low on fuel then it's because we've burnt everything
 function FuelExhausted()
   return turtle.getFuelLevel() ~= "unlimited" and turtle.getFuelLevel() < lowFuel
 end
@@ -247,19 +249,13 @@ function RefuelWithLava(inspectFn, placeFn)
   if turtle.getFuelLevel() ~= "unlimited" and turtle.getFuelLevel() < maxFuel - lavaFuel then
     local success, data = inspectFn()
     if success then
-      if data.name == idLava or data.name == idLavaF then
+      if data.name == idLava or 
+        (data.name == idLavaF and data.metadata==0) then
         if Select(idBucket) then
           placeFn()
           -- The bucket could have moved if there were two buckets to begin with
           if Select(idBucketL) then
             turtle.refuel(1)
-            if data.name == idLavaF then
-              print("idLavaF success, meta:", data.metadata) -- success with 0(?)
-            end
-          else
-            if data.name == idLavaF then
-              print("idLavaF failed, meta:", data.metadata)  -- fails with 1 and 7
-            end
           end
         end
       end
@@ -333,18 +329,18 @@ end
 function Turn()
   CheckOriginSet()
   if turnClockwise then
-    TurnLeft()
-  else
     TurnRight()
+  else
+    TurnLeft()
   end
 end
 
 function TurnAnti()
   CheckOriginSet()
   if turnClockwise then
-    TurnRight()
-  else
     TurnLeft()
+  else
+    TurnRight()
   end
 end
 
@@ -355,7 +351,8 @@ end
 
 -- The TurnsTo() functions measure how many turns in which direction are necessary 
 -- to face towards the passed X (forwards-backwards) position
--- a negative value means TurnAnti, 2 means 180 degree turn, 0 already facing towards there
+-- a negative value means TurnAnti, 
+-- 2 means 180 degree turn, 0 already facing towards there
 function TurnsToX(posForward)
   if CurrentX() == posForward then
     return 0
@@ -438,6 +435,24 @@ function CurrentY()
   return currentHeight
 end
 
+-- What is the X position the turtle is facing?
+function FacingX()
+  if currentDirection % 2 == 0 then
+    return CurrentX() - currentDirection + 1
+  else
+    return CurrentX()
+  end
+end
+
+-- What is the Z position the turtle is facing?
+function FacingZ()
+  if currentDirection % 2 == 0 then
+    return CurrentX()
+  else
+    return CurrentX() - currentDirection + 2
+  end
+end
+
 local limitFwd = 10000
 local limitBack = -10000
 local limitTurn = 10000
@@ -445,9 +460,12 @@ local limitTurnAnti = -10000
 local limitUp = 300
 local limitDown = -300
 -- The dead reckoning location of the turtle can be constrained to prevent runaway bots
--- Successful dead reckoning requires all movement to go through the library - no calling turtle.forward yourself!
--- Backward and TurnAnti are expressed in terms relative to Forward and Turn - so negative for behind, for example. 
-function SetMovementBounds(newLimitFwd, newLimitBack, newLimitTurn, newLimitTurnAnti, newLimitUp, newLimitDown)
+-- Successful dead reckoning requires all movement to go through the library
+--   - no calling turtle.forward yourself!
+-- Backward and TurnAnti are expressed in terms relative to Forward and Turn
+--   - so negative for behind, for example. 
+function SetMovementBounds(newLimitFwd, newLimitBack, 
+    newLimitTurn, newLimitTurnAnti, newLimitUp, newLimitDown)
   limitFwd = newLimitFwd
   limitBack = newLimitBack
   limitTurn = newLimitTurn
@@ -468,8 +486,10 @@ function HaltIfOutOfBounds()
   end
 end
 
--- The MoveX functions attempt to move, and give it a few goes, but if that fails the program halts.
--- This may be surprising if a mob (like the player) gets in the turtle's way or a tree suddenly grows.
+-- The MoveX functions attempt to move, and give it a few goes, 
+--   but if that fails **the program halts**
+-- This may be surprising if a mob (like the player) gets in the turtle's way 
+--   or a tree suddenly grows.
 -- For more insistant movement, try the DigX functions
 function MoveX(moveFn, fnName, attackFn)
   CheckOriginSet()
@@ -496,28 +516,28 @@ function MoveX(moveFn, fnName, attackFn)
 end
 
 function MoveForward()
-  local result = MoveX(turtle.forward, "MoveForward", turtle.forward)
+  local result = MoveX(turtle.forward, "MoveForward", turtle.attack)
   distanceTraveled[currentDirection] = distanceTraveled[currentDirection] + 1
   HaltIfOutOfBounds()
   return result
 end
 
 function MoveBackward()
-  local result = MoveX(turtle.back, "MoveBackward", turtle.forward) -- bad attack function, FIXME
+  local result = MoveX(turtle.back, "MoveBackward", turtle.attack) -- bad attack function, FIXME
   distanceTraveled[currentDirection] = distanceTraveled[currentDirection] - 1
   HaltIfOutOfBounds()
   return result
 end
 
 function MoveUp()
-  local result = MoveX(turtle.up, "MoveUp", turtle.up)
+  local result = MoveX(turtle.up, "MoveUp", turtle.attackUp)
   currentHeight = currentHeight + 1
   HaltIfOutOfBounds()
   return result
 end
 
 function MoveDown()
-  local result = MoveX(turtle.down, "MoveDown", turtle.down)
+  local result = MoveX(turtle.down, "MoveDown", turtle.attackDown)
   currentHeight = currentHeight - 1
   HaltIfOutOfBounds()
   return result
@@ -534,8 +554,10 @@ local function NeedsDigging(name)
     string.find(name, "gas") == nil
 end
 
--- The DigX functions attempt to move, and dig if that fails. They give it a couple of goes before returning false
--- This is necessary to deal with a mob (like the player) getting in the turtle's way or a tree suddenly growing.
+-- The DigX functions attempt to move, and dig if that fails. 
+-- They give it a couple of goes before returning false
+-- This is necessary to deal with a mob (like the player) 
+-- getting in the turtle's way or a tree suddenly growing.
 function DigX(moveFn, digFn, inspectFn, attackFn)
   CheckOriginSet()
   Refuel()
@@ -572,7 +594,6 @@ function DigGravityBlocksThatAreAbove()
   local somethingThere, data = turtle.inspectUp()
   while something and IsGravityBlock(data.name) do
     turtle.digUp()
---    os.sleep(0.1)
     somethingThere, data = turtle.inspectUp()
   end
 end
@@ -609,7 +630,7 @@ function DigUp()
 end
 
 function DigDown()
-  DigX(turtle.down, turtle.digDown, turtle.inspectDown, turtle.attackDown)
+  result = DigX(turtle.down, turtle.digDown, turtle.inspectDown, turtle.attackDown)
   if result then
     currentHeight = currentHeight -1
     HaltIfOutOfBounds()
@@ -617,8 +638,10 @@ function DigDown()
   return result
 end
 
--- The MineX functions succeed in going forward, dealing with as many gravity blocks (sand, gravel) as necessary.
--- The only thing that could stop them is bedrock, causing them to return false rather than true.
+-- The MineX functions succeed in going forward, 
+--   dealing with as many gravity blocks (sand, gravel) as necessary.
+-- The only thing that could stop them is bedrock, 
+--   causing them to return false rather than true.
 -- The "success" return value is coupled with the name of the last block mined
 -- If lava is come across it is consumed for fuel if the turtle has a bucket to do so.
 
@@ -661,7 +684,6 @@ function MineBackward()
   return result
 end
 
--- MoveUp, digging if necessary and replacing any destroyed torches
 function MineUp()
   local somethingThere, data = turtle.inspectUp()
   local dug_name = nil
@@ -688,7 +710,6 @@ function MineUp()
   return result, dug_name
 end
 
--- MoveDown, digging if necessary and replacing any destroyed torches
 function MineDown()
   local somethingThere, data = turtle.inspectDown()
   local dug_name = nil
@@ -768,10 +789,12 @@ function MineToY(posVert)
 end
 
 -- The ExtractOreX functions mine a contiguous orebody to exhaustion
--- The functions are recursive, so the path taken into the orebody is reversed working out once it is exhausted; 
+-- The functions are recursive, so the path taken into the orebody 
+--    is reversed working out once it is exhausted; 
 --    this can be slow, but it was easy to program
--- Given that you supply a function to determine what ore is, this can work quite nicely for "mining" a tree 
---    (are there any trees that this doesn't work on? Acadia?  Large Oak?)
+-- Given that you supply a function to determine what ore is, 
+--    this can work quite nicely for "mining" a tree (well, simple trees anyway)
+--    or clearing a beach of sand down to a certain level
 
 idMoon = "GalacticraftCore:tile.moonBlock"
 idGCOil = "GalacticraftCore:tile.crudeOilStill"
@@ -781,16 +804,8 @@ function IsOil(name)
   return string.find(name, "Oil") ~= nil
 end
 
-function GenericOreIdentifier(name, meta)
-  if IsOil(name) or
-     (name == idMoon and (meta >= 3 and meta <= 5))
-    then return false
-  end
-  return 
-    string.find(name, "minecraft") == nil or
-    name == idClay or
-    name == idObsidian or
-    string.find(name, "_ore") ~= nil
+function IsGas(name)
+  return string.find(name, "gas") ~= nil
 end
 
 function HasOreInTheName(name)
@@ -811,6 +826,28 @@ end
 
 function IsAnything(name)
   return name ~= nil
+end
+
+-- GenericOreIdentifier is a function that given the identifying data of a
+-- block is generally right in figuring out if it's valuable and needs mining
+-- Tested with various mods such as Glens Gases, Buildcraft and Galaticraft.
+-- Will go a little haywire aboveground in Biomes O' Plenty.
+function GenericOreIdentifier(name, meta)
+  -- oil and gas don't mine well
+  if IsOil(name) or IsGas(name) or
+     -- crappy moon rock should stay where it is
+     (name == idMoon and (meta >= 3 and meta <= 5))
+    then return false
+  end
+  return 
+    -- anything not from vanilla Minecraft is probably good
+    string.find(name, "minecraft") == nil or
+    -- clay's handy
+    name == idClay or
+    -- as is Obsidian
+    name == idObsidian or
+    -- but as a fallback, if it HasOreInTheName then that's good, right?
+    HasOreInTheName(name)
 end
 
 local steps=6
@@ -842,7 +879,6 @@ function ExtractOre(isOreFn)
     placeFn   = step[stepNum][2]
     extractFn = step[stepNum][3]
     nextFn    = step[stepNum][5]
---    print("depth:",table.getn(step), ".", stepNum)
     somethingThere, data = inspectFn()
     if somethingThere then
       if isOreFn(data.name, data.metadata) then
