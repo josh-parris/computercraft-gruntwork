@@ -1,7 +1,5 @@
 -- TODO:Support bot (clears dump chest; makes things - torches, buckets, obsidian, blocks of redstone; makes pedestrian tunnels, lights them)
--- TODO: Dump cobble on up?
 -- TODO: label discovered gases:gasFallingExplosive etc
--- TODO: only place plug if it's replacing a block
 
 local torchesEvery=8
 local tunnelLength=0
