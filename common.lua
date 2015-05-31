@@ -76,7 +76,6 @@ idFurnace2="minecraft:lit_furnace"
 slots=16
 blockStack=64
 maxFuel=10000
-lavaFuel=1000
 
 local somethingThere, data
 
@@ -186,6 +185,10 @@ function SetLowFuelLevel(newLowFuel)
   lowFuel = newLowFuel
 end
 
+function CanTravel(distance)
+  return turtle.getFuelLevel() == "unlimited" or turtle.getFuelLevel() > distance
+end
+
 function LowOnFuel()
   return turtle.getFuelLevel() ~= "unlimited" and turtle.getFuelLevel() <= lowFuel
 end
@@ -244,9 +247,9 @@ function FuelSlot()
 end
 
 -- The RefuelWithLavaX functions require a bucket in inventory to succeed
--- I'm still figuring out what kinds of flowing lava will succeed
 function RefuelWithLava(inspectFn, placeFn)
-  if turtle.getFuelLevel() ~= "unlimited" and turtle.getFuelLevel() < maxFuel - lavaFuel then
+  if turtle.getFuelLevel() ~= "unlimited" 
+     and turtle.getFuelLevel() < maxFuel - burnTime[idBucketL] then
     local success, data = inspectFn()
     if success then
       if data.name == idLava or 
@@ -490,7 +493,7 @@ end
 --   but if that fails **the program halts**
 -- This may be surprising if a mob (like the player) gets in the turtle's way 
 --   or a tree suddenly grows.
--- For more insistant movement, try the DigX functions
+-- For more insistent movement, try the DigX functions
 function MoveX(moveFn, fnName, attackFn)
   CheckOriginSet()
   Refuel()
@@ -550,8 +553,8 @@ local function NeedsDigging(name)
     name ~= idWater and
     name ~= idWaterF and
     name ~= idBedrock and
-    string.find(name, "Oil") == nil and
-    string.find(name, "gas") == nil
+    not IsOil(name) and
+    not IsGas(name)
 end
 
 -- The DigX functions attempt to move, and dig if that fails. 
@@ -640,7 +643,7 @@ end
 
 -- The MineX functions succeed in going forward, 
 --   dealing with as many gravity blocks (sand, gravel) as necessary.
--- The only thing that could stop them is bedrock, 
+-- The only thing that could stop them is bedrock or fuel exhaustion, 
 --   causing them to return false rather than true.
 -- The "success" return value is coupled with the name of the last block mined
 -- If lava is come across it is consumed for fuel if the turtle has a bucket to do so.
@@ -914,7 +917,7 @@ function ExtractOre(isOreFn)
   return result
 end
 
-function ExtractOreDirection(direction, isOreFn)
+local function ExtractOreDirection(direction, isOreFn)
   local inspectFn = step[direction][1] 
   local placeFn   = step[direction][2]
   local extractFn = step[direction][3]

@@ -11,7 +11,7 @@ local shaftSpacing=4
 idPlug = idCobble
 
 function IsOreRare(name)
-  return idDiamond == name
+  return idDiamond == name or idEmerald == name
 end
 
 function IsPluggedForward()
@@ -36,8 +36,16 @@ SetFuelPriority(priorities)
 SetLowFuelLevel(maxTravel * 4)
 -- -------
 
+function MinTotalTravel()
+  return maxTravel/shaftSpacing * (maxTravel*2*maxHeight/shaftSpacing + maxHeight*3)
+end
+
 function IsNotNeededForFuel(name)
-  return name ~= idBucket and name ~= idBucketL and name ~= idCoal
+  if CanTravel(MinTotalTravel()*3) then
+    return name ~= idBucket
+  else
+    return name ~= idBucket and not IsFuel(name)
+  end
 end
 
 function DumpIntoChestForward()
@@ -52,6 +60,7 @@ function DumpIntoChestForward()
     print("ERROR: told to dump, no chest")
     error() -- halt, we're lost
   end
+  print("Fuel level:", turtle.getFuelLevel())
   if LowOnFuel() then
     print("Low on fuel, stopping for safety")
     Result = false
