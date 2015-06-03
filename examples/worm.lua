@@ -14,6 +14,10 @@ function IsOreRare(name)
   return idDiamond == name or idEmerald == name
 end
 
+function MineableOre(name, meta)
+  return name ~= idTurtle and GenericOreIdentifier(name, meta)
+end
+
 function IsPluggedForward()
   local success, data = turtle.inspect()
   return success and data.name == idPlug
@@ -70,13 +74,13 @@ function DumpIntoChestForward()
 end
 
 function ExtractOreHorizontalPlane()
-  ExtractOreForward(GenericOreIdentifier)
+  ExtractOreForward(oreFn)
   Turn()
-  ExtractOreForward(GenericOreIdentifier)
+  ExtractOreForward(oreFn)
   Turn()
-  ExtractOreForward(GenericOreIdentifier)
+  ExtractOreForward(oreFn)
   Turn()
-  ExtractOreForward(GenericOreIdentifier)
+  ExtractOreForward(oreFn)
   Turn()
 end
 
@@ -98,10 +102,10 @@ function MineAroundRareOre(name)
   -- Move up to and then mine the 3x3 layer above the discovered ore
   success = false
   if MineUp() then
-    ExtractOreUp(GenericOreIdentifier)
+    ExtractOreUp(oreFn)
     for side=1,4,1 do
       if not success and MineForward() then
-        success = Extract3x3RingLayer(GenericOreIdentifier)
+        success = Extract3x3RingLayer(oreFn)
         MineBackward() -- known safe
       end
       Turn()
@@ -112,7 +116,7 @@ function MineAroundRareOre(name)
       if success then 
         if MineForward() then
           if MineUp() then
-            success = Extract3x3RingLayer(GenericOreIdentifier)
+            success = Extract3x3RingLayer(oreFn)
             MineDown()
           end
           -- return to our starting position
@@ -126,7 +130,7 @@ function MineAroundRareOre(name)
   success = false
   for side=1,4,1 do
     if not success and MineForward() then
-      success = Extract3x3RingLayer(GenericOreIdentifier)
+      success = Extract3x3RingLayer(oreFn)
       MineBackward() -- known safe
     end
     Turn()
@@ -134,10 +138,10 @@ function MineAroundRareOre(name)
   -- Move down to and then mine the 3x3 layer below the discovered ore
   success = false
   if MineDown() then
-    ExtractOreDown(GenericOreIdentifier)
+    ExtractOreDown(oreFn)
     for side=1,4,1 do
       if not success and MineForward() then
-        success = Extract3x3RingLayer(GenericOreIdentifier)
+        success = Extract3x3RingLayer(oreFn)
         MineBackward() -- known safe
       end
       Turn()
@@ -147,7 +151,7 @@ function MineAroundRareOre(name)
     for side=1,4,1 do
       if not success and MineForward() then
         if MineDown() then
-          success = Extract3x3RingLayer(GenericOreIdentifier)
+          success = Extract3x3RingLayer(oreFn)
           MineUp()
         end
         -- return to our starting position
@@ -163,11 +167,11 @@ function MineHorizontalShaft()
   -- Mine out a 1x1 shaft
   for n=1, tunnelLength, 1 do
     MineForward()
-    ExtractOreUp(GenericOreIdentifier)
+    ExtractOreUp(oreFn)
     Select(idCobble)
     turtle.placeUp()
     Turn()
-    ExtractOreForward(GenericOreIdentifier)
+    ExtractOreForward(oreFn)
     Select(idCobble)
     turtle.place()
     Turn()
@@ -177,11 +181,11 @@ function MineHorizontalShaft()
       turtle.select(1)
     end
     Turn()
-    ExtractOreForward(GenericOreIdentifier)
+    ExtractOreForward(oreFn)
     Select(idCobble)
     turtle.place()
     Turn()
-    ExtractOreDown(GenericOreIdentifier)
+    ExtractOreDown(oreFn)
     Select(idCobble)
     turtle.placeDown()
   end
@@ -202,15 +206,15 @@ function MoveToOffset(direction)
     turtle.placeDown()
   end
   turtle.select(1)
-  ExtractOreHorizontalPlane(GenericOreIdentifier)
+  ExtractOreHorizontalPlane(oreFn)
   MineUp()
-  ExtractOreHorizontalPlane(GenericOreIdentifier)
-  ExtractOreUp(GenericOreIdentifier)
+  ExtractOreHorizontalPlane(oreFn)
+  ExtractOreUp(oreFn)
   for n=1,shaftSpacing/2,1 do
     MineForward()
     currentTravel = currentTravel + direction
-    ExtractOreUp(GenericOreIdentifier)
-    ExtractOreDown(GenericOreIdentifier)
+    ExtractOreUp(oreFn)
+    ExtractOreDown(oreFn)
   end
 end
 
@@ -227,7 +231,7 @@ function DumpWhileMining()
     for n=1, currentTravel, 1 do
       MineBackward()
       turtle.suck()
-      if ExtractOreDown(GenericOreIdentifier) then
+      if ExtractOreDown(oreFn) then
         Select(idCobble)
         turtle.placeDown()
         turtle.select(1)
@@ -236,7 +240,7 @@ function DumpWhileMining()
     for y=1,returnHeight,1 do
       MineUp()
       turtle.suckDown()
-      ExtractOreForward(GenericOreIdentifier)
+      ExtractOreForward(oreFn)
     end
   else
     print("Chest full after ", currentTravel, " out, ", returnHeight, " up")
@@ -290,8 +294,13 @@ function MineOffsetShafts()
 end
 
 
--- write files to keep track of where we're at
+-- write to http server to keep track of where we're at
 tunnelLength = maxTravel
+if args[1]=="rescue" then
+  oreFn = GenericOreIdentifier
+else
+  oreFn = MineableOre
+end
 AfterMiningCall(MineAroundRareOre)
 turtle.select(1)
 turnClockwise=false
@@ -382,4 +391,5 @@ else
   print("Expects to start at y=5")
   print("Mines out a ",maxTravel,"*",maxTravel,"*10 block")
   print("Start next to a chest from which to work outwards")
+  print("Add 'rescue' to the command to mine turtles")
 end
