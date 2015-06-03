@@ -1,15 +1,28 @@
+shell.run("common")
+
+oreFn = GenericOreIdentifier
+haltFn = function()
+  return FreeSlots() == 0
+end
+
+function IsLiningMaterial(data)
+  return IsCrappyMoonStuff(data.name, data.metadata) or
+    data.name==idNRack or
+    data.name==idCobble
+end
+
 function LineTunnel(extractFn, inspectFn, placeFn)
   RefuelWithLava(inspectFn, placeFn)
-  extractFn(GenericOreIdentifier)
-  if Select(idNRack) then
-    placeFn()
-  else
-    if Select(idCobble) then
+  extractFn(oreFn)
+  for slot=1,slots,1 do
+    local data = turtle.getItemDetail(slot)
+    if data and IsLiningMaterial(data) then
+      turtle.select(slot)
       placeFn()
-    else
-      error("Error: Out of blocks")
+      return
     end
   end
+  error("Error: Out of blocks")
 end
 
 function LineTunnelForward(subsequentFn)
@@ -155,15 +168,29 @@ function MineStairDown()
   LineTunnelForward(Turn)
 end
 
+function MakeTubeBy(tubeFn, times)
+  for n=1,times do
+    if haltFn then
+      print("Storage full. Halting after " .. n .. " steps")
+      break
+    end
+    tubeFn()
+  end
+end
+
+-- Main routine
 local tArgs = { ... }
 if #tArgs ~= 2 then
 	print( "Usage: tube <up|dn|fwd|fast|stairdn|stairup> <length>" )
+	print( "            [dump|noore]" )
   print( "  Makes a sealed passageway, useful for travelling" )
   print( "  through lava, gases and other hostile environments -" )
   print( "  fwd makes a two high, 1 wide sealed tunnel" )
   print( "  fast does the same but doesn't bother sealing" )
   print( "  up makes minimum height stairs which bump your head" )
   print( "  stairup makes 5-high staircase with space for steps" )
+  print( "  unless dump is specified, will stop when full" )
+  print( "  noore causes orebodies to be ignored rather than mined" )
 	return
 end
 
@@ -178,41 +205,28 @@ if length > 64 then
 	return
 end
 
+if tArgs[3] == 'noore' then
+  oreFn = NoOp
+elseif tArgs[3] == 'dump' then
+  haltFn = NoOp
+elseif tArgs[3] ~= nil then
+  print("I don't know " .. tArgs[3])
+end
+
 if tArgs[1] =='up' then
   MineUp()
-  for n=1,length,1 do
-    MineStepUp()
-  end
+  MakeTubeBy(MineStepUp, length)
   MineDown()
-  return
-end
-if tArgs[1] =='dn' or tArgs[1] =='down' then
-  for n=1,length,1 do
-    MineStepDown()
-  end
-  return
-end
-if tArgs[1] == 'stairdn' then
-  for n=1,length,1 do
-    MineStairDown()
-  end
-  return
-end
-if tArgs[1] == 'stairup' then
-  for n=1,length,1 do
-    MineStairUp()
-  end
-  return
-end
-if tArgs[1] == 'fwd' or tArgs[1] == 'forward' then
-  for n=length/2,1,-1 do
-    MineHorizontalTunnelTwoSteps()
-  end
-  return
-end
-if tArgs[1] == 'fast' or tArgs[1] == 'ff' then
-  for n=1,length,1 do
-    MineHorizontalTunnelFast()
-  end
-  return
+elseif tArgs[1] =='dn' or tArgs[1] =='down' then
+  MakeTubeBy(MineStepDown, length)
+elseif tArgs[1] == 'stairdn' then
+  MakeTubeBy(MineStairDown, length)
+elseif tArgs[1] == 'stairup' then
+  MakeTubeBy(MineStairUp, length)
+elseif tArgs[1] == 'fwd' or tArgs[1] == 'forward' then
+  MakeTubeBy(MineHorizontalTunnelTwoSteps, length/2)
+elseif tArgs[1] == 'fast' or tArgs[1] == 'ff' then
+  MakeTubeBy(MineHorizontalTunnelFast, length)
+else
+  print("I don't know " .. tArgs[1])
 end

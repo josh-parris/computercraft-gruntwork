@@ -1,5 +1,6 @@
 -- Can turtles rewrite signs?
 
+idTurtle = "cc:turtle"
 idHopper = "minecraft:hopper"
 idChest  = "minecraft:chest"
 idTrapChest= "minecraft:trapped_chest"
@@ -80,6 +81,7 @@ maxFuel=10000
 local somethingThere, data
 
 function NoOp()
+  return false
 end
 
 -- Returns false if the item is not in any slot, 
@@ -831,15 +833,17 @@ function IsAnything(name)
   return name ~= nil
 end
 
+function IsCrappyMoonStuff(name, meta)
+  return name == idMoon and (meta >= 3 and meta <= 5)
+end
+
 -- GenericOreIdentifier is a function that given the identifying data of a
 -- block is generally right in figuring out if it's valuable and needs mining
 -- Tested with various mods such as Glens Gases, Buildcraft and Galaticraft.
 -- Will go a little haywire aboveground in Biomes O' Plenty.
 function GenericOreIdentifier(name, meta)
   -- oil and gas don't mine well
-  if IsOil(name) or IsGas(name) or
-     -- crappy moon rock should stay where it is
-     (name == idMoon and (meta >= 3 and meta <= 5))
+  if IsOil(name) or IsGas(name) or IsCrappyMoonStuff(name, meta)
     then return false
   end
   return 
