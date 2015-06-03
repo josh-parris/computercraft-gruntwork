@@ -1,6 +1,8 @@
 -- TODO:Support bot (clears dump chest; makes things - torches, buckets, obsidian, blocks of redstone; makes pedestrian tunnels, lights them)
 -- TODO: label discovered gases:gasFallingExplosive etc
 
+shell.run("common")
+
 local torchesEvery=8
 local tunnelLength=0
 local maxTravel=16
@@ -295,8 +297,9 @@ end
 
 
 -- write to http server to keep track of where we're at
+local tArgs = { ... }
 tunnelLength = maxTravel
-if args[1]=="rescue" then
+if tArgs[1]=="rescue" then
   oreFn = GenericOreIdentifier
 else
   oreFn = MineableOre
