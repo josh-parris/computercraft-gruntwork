@@ -187,7 +187,7 @@ function usage()
   print( "  fast does the same but unsealed" )
   print( "  up makes minimum height stairs" )
   print( "  stairup makes 5-high staircase for steps" )
-  print( "  unless "dump", will stop when full" )
+  print( "  unless 'dump', will stop when full" )
   print( "  noore causes orebodies to be not followed" )
 end
 
