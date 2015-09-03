@@ -199,6 +199,10 @@ if #tArgs == 1 or #tArgs > 3 then
 end
 
 local length = tonumber( tArgs[2] )
+if length == nil then
+  usage()
+  return
+end
 if length < 1 then
   print( "Tunnel length must be positive" )
   return
