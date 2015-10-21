@@ -137,6 +137,7 @@ function MineStairUp()
   -- top block
   LineTunnelUp()
   LineTunnelForward(Turn)
+  LineTunnelForward(Turn)
   for n=1,4,1 do
     LineTunnelForward(MineDown)
   end
